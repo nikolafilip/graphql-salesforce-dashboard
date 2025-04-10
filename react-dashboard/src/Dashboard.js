@@ -1,6 +1,7 @@
 // src/Dashboard.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, gql } from '@apollo/client';
+import { Link, useLocation } from 'react-router-dom';
 import './Dashboard.css';
 
 const GET_ACCOUNT = gql`
@@ -19,8 +20,19 @@ const GET_ACCOUNT = gql`
 `;
 
 const Dashboard = () => {
+  const location = useLocation();
   const [accountId, setAccountId] = useState('');
   const [searchId, setSearchId] = useState('');
+  
+  // Handle URL parameters for account ID
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const idFromUrl = params.get('id');
+    if (idFromUrl) {
+      setAccountId(idFromUrl);
+      setSearchId(idFromUrl);
+    }
+  }, [location.search]);
   
   // Only execute the query when searchId has a value
   const { loading, error, data, refetch } = useQuery(GET_ACCOUNT, {
@@ -78,6 +90,10 @@ const Dashboard = () => {
     <div className="dashboard-container">
       <header className="dashboard-header">
         <h1>Salesforce Account Dashboard</h1>
+        <nav className="main-nav">
+          <Link to="/" className="nav-link active">Home</Link>
+          <Link to="/accounts" className="nav-link">All Accounts</Link>
+        </nav>
       </header>
       
       <div className="search-container">
@@ -122,6 +138,7 @@ const Dashboard = () => {
             <h3>Welcome to the Salesforce Dashboard</h3>
             <p>Enter a Salesforce Account ID above to view account details and contacts.</p>
             <p>Before searching, make sure you've authenticated with Salesforce.</p>
+            <p>Or <Link to="/accounts" className="text-link">view all accounts</Link> to browse your Salesforce data.</p>
             <a href="http://localhost:4000/oauth2/auth" className="auth-link" target="_blank" rel="noopener noreferrer">
               Authenticate with Salesforce
             </a>

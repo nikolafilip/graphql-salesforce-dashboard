@@ -82,7 +82,33 @@ const resolvers = {
         throw error;
       }
     },
-  },
+    accounts: async (_, { id }, context) => {
+      // Retrieve OAuth details from context
+      const { accessToken, instanceUrl, refreshToken, oauth2 } = context.oauthData || {};
+
+      if (!accessToken || !instanceUrl) {
+        throw new Error('Not authenticated with Salesforce. Please complete the OAuth flow.');
+      }
+
+      const conn = new jsforce.Connection({
+        instanceUrl,
+        accessToken,
+        refreshToken,
+        oauth2
+      });
+
+      // Execute the SOQL query to fetch all Accounts
+      const query = 'SELECT Id, Name, Industry FROM Account';
+      const result = await conn.query(query);
+
+      // Map the result to the Account type
+      return result.records.map(record => ({
+        id: record.Id,
+        name: record.Name,
+        industry: record.Industry
+      }));
+    }
+  }
 };
 
 module.exports = resolvers;

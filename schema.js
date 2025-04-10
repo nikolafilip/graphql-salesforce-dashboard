@@ -3,7 +3,8 @@ const { gql } = require('apollo-server');
 
 const typeDefs = gql`
   type Query {
-    account(id: ID!): Account
+    account(id: ID!): Account,
+    accounts: [Account]
   }
 
   type Account {
