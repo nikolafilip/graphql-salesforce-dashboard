@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salesforce GraphQL Dashboard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .card {
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .status-authenticated {
+            background-color: #0a0;
+            color: white;
+        }
+        .status-unauthenticated {
+            background-color: #d73a49;
+            color: white;
+        }
+        button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid #e1e4e8;
+            background-color: #0366d6;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        button:hover {
+            background-color: #035fc7;
+        }
+        button.logout {
+            background-color: #d73a49;
+        }
+        button.logout:hover {
+            background-color: #cb2431;
+        }
+        pre {
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Salesforce GraphQL Dashboard</h1>
+    
+    <div class="card">
+        <h2>Authentication Status</h2>
+        <div id="auth-status">Checking...</div>
+        <div id="auth-actions" style="margin-top: 12px">
+            <button id="login-btn">Login to Salesforce</button>
+            <button id="logout-btn" class="logout" style="display: none">Logout</button>
+        </div>
+        <div style="margin-top: 10px; font-size: 14px;">
+            <a href="/auth/debug" target="_blank">View Session Debug Info</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>GraphQL Access</h2>
+        <p>Once authenticated, you can access the GraphQL playground:</p>
+        <a href="/graphql" target="_blank" id="graphql-link">Open GraphQL Playground</a>
+        <div id="test-query-result" style="margin-top: 12px;"></div>
+        <p>If you're having trouble with the GraphQL Playground, try the <a href="/direct-query.html">Direct Query Tool</a> instead.</p>
+        <p>Sample query to try:</p>
+        <pre>{
+  account(id: "001aj000011qf61AAA") {
+    name
+    industry
+    contacts {
+      firstName
+      lastName
+      email
+    }
+  }
+}</pre>
+        <button id="test-query-btn" style="margin-top: 10px;">Test GraphQL Connection</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const authStatus = document.getElementById('auth-status');
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const testQueryBtn = document.getElementById('test-query-btn');
+            const testQueryResult = document.getElementById('test-query-result');
+            const graphqlLink = document.getElementById('graphql-link');
+
+            // Check authentication status
+            async function checkAuthStatus() {
+                try {
+                    const response = await fetch('/auth/status', {
+                        credentials: 'include', // Important for session cookies
+                        headers: {
+                            'Accept': 'application/json',
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.authenticated) {
+                        authStatus.innerHTML = `<div class="status status-authenticated">Authenticated</div>`;
+                        loginBtn.style.display = 'none';
+                        logoutBtn.style.display = 'inline-block';
+                        testQueryBtn.disabled = false;
+                    } else {
+                        authStatus.innerHTML = `<div class="status status-unauthenticated">Not Authenticated</div>`;
+                        loginBtn.style.display = 'inline-block';
+                        logoutBtn.style.display = 'none';
+                        testQueryBtn.disabled = true;
+                    }
+                } catch (error) {
+                    authStatus.textContent = `Error checking status: ${error.message}`;
+                    console.error('Auth status error:', error);
+                }
+            }
+
+            // Test GraphQL connection
+            testQueryBtn.addEventListener('click', async () => {
+                testQueryResult.innerHTML = '<div style="color: blue;">Testing connection...</div>';
+                
+                try {
+                    const response = await fetch('/graphql', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: `{ __schema { queryType { name } } }`
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.errors) {
+                        testQueryResult.innerHTML = `<div style="color: red;">Error: ${result.errors[0].message}</div>`;
+                    } else {
+                        testQueryResult.innerHTML = `<div style="color: green;">Connection successful! GraphQL is working.</div>`;
+                    }
+                } catch (error) {
+                    testQueryResult.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+                    console.error('GraphQL test error:', error);
+                }
+            });
+
+            // Add click handler for GraphQL link
+            graphqlLink.addEventListener('click', (e) => {
+                // Add a timestamp to avoid caching issues
+                graphqlLink.href = `/graphql?ts=${new Date().getTime()}`;
+            });
+
+            // Login button click handler
+            loginBtn.addEventListener('click', () => {
+                window.location.href = '/oauth2/auth';
+            });
+
+            // Logout button click handler
+            logoutBtn.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/auth/logout', {
+                        credentials: 'include',
+                        headers: {
+                            'Accept': 'application/json',
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    await response.json();
+                    checkAuthStatus();
+                    testQueryResult.innerHTML = '';
+                } catch (error) {
+                    alert(`Error logging out: ${error.message}`);
+                    console.error('Logout error:', error);
+                }
+            });
+
+            // Initial check
+            checkAuthStatus();
+        });
+    </script>
+</body>
+</html> 
