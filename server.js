@@ -23,11 +23,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Use sessions to store OAuth tokens (in a production app, consider a more robust store)
 app.use(session({
-  secret: 'your_secret_key',
+  secret: process.env.SF_CLIENT_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: {
-    httpOnly: true,
+    httpOnly: false,
     secure: process.env.NODE_ENV === 'production', // set to true in production
     sameSite: 'lax'
   }
@@ -66,7 +66,7 @@ app.get('/oauth2/callback', async (req, res) => {
     const userInfo = await conn.identity();
     
     console.log('Salesforce OAuth successful. User ID: ', userInfo.user_id);
-    res.redirect('/graphql');
+    res.redirect('/index.html');
   } catch (err) {
     console.error('OAuth error: ', err);
     return res.status(500).send('Authentication failed: ' + err.message);
