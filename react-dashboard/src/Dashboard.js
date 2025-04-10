@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, gql } from '@apollo/client';
 import { Link, useLocation } from 'react-router-dom';
+import ContactEdit from './ContactEdit';
 import './Dashboard.css';
 
 const GET_ACCOUNT = gql`
@@ -23,6 +24,8 @@ const Dashboard = () => {
   const location = useLocation();
   const [accountId, setAccountId] = useState('');
   const [searchId, setSearchId] = useState('');
+  const [editingContact, setEditingContact] = useState(null);
+  const [contacts, setContacts] = useState([]);
   
   // Handle URL parameters for account ID
   useEffect(() => {
@@ -41,6 +44,13 @@ const Dashboard = () => {
     fetchPolicy: 'network-only'
   });
   
+  // Update local contacts state when data changes
+  useEffect(() => {
+    if (data?.account?.contacts) {
+      setContacts(data.account.contacts);
+    }
+  }, [data]);
+  
   const handleSearch = (e) => {
     e.preventDefault();
     if (accountId) {
@@ -49,6 +59,19 @@ const Dashboard = () => {
         refetch();
       }
     }
+  };
+
+  const handleEditContact = (contact) => {
+    setEditingContact(contact);
+  };
+
+  const handleSaveContact = (updatedContact) => {
+    // Update the local contacts array with the updated contact
+    setContacts(prevContacts => 
+      prevContacts.map(contact => 
+        contact.id === updatedContact.id ? updatedContact : contact
+      )
+    );
   };
 
   const renderAccountDetails = () => {
@@ -63,10 +86,10 @@ const Dashboard = () => {
         </div>
         
         <div className="contacts-section">
-          <h3>Contacts ({account.contacts.length})</h3>
-          {account.contacts.length > 0 ? (
+          <h3>Contacts ({contacts.length})</h3>
+          {contacts.length > 0 ? (
             <div className="contacts-grid">
-              {account.contacts.map(contact => (
+              {contacts.map(contact => (
                 <div key={contact.id} className="contact-card">
                   <div className="contact-avatar">
                     {contact.firstName?.charAt(0) || ''}{contact.lastName?.charAt(0) || ''}
@@ -75,6 +98,13 @@ const Dashboard = () => {
                     <h4>{contact.firstName} {contact.lastName}</h4>
                     <a href={`mailto:${contact.email}`}>{contact.email}</a>
                   </div>
+                  <button 
+                    className="edit-contact-btn" 
+                    onClick={() => handleEditContact(contact)}
+                    aria-label="Edit Contact"
+                  >
+                    Edit
+                  </button>
                 </div>
               ))}
             </div>
@@ -145,6 +175,14 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+      
+      {editingContact && (
+        <ContactEdit 
+          contact={editingContact} 
+          onClose={() => setEditingContact(null)} 
+          onSave={handleSaveContact}
+        />
+      )}
     </div>
   );
 };

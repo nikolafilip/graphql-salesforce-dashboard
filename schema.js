@@ -7,6 +7,16 @@ const typeDefs = gql`
     accounts: [Account]
   }
 
+  type Mutation {
+    updateContact(id: ID!, input: ContactInput!): Contact
+  }
+
+  input ContactInput {
+    firstName: String
+    lastName: String
+    email: String
+  }
+
   type Account {
     id: ID!
     name: String

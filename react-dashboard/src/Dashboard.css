@@ -216,10 +216,36 @@ body {
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
   transition: transform 0.2s;
+  position: relative;
 }
 
 .contact-card:hover {
   transform: translateY(-3px);
+}
+
+.edit-contact-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: var(--secondary-color);
+  color: var(--accent-color);
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+
+.contact-card:hover .edit-contact-btn {
+  opacity: 1;
+}
+
+.edit-contact-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
 }
 
 .contact-avatar {
